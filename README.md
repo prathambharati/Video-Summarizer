@@ -1,13 +1,36 @@
-# Video-Summarizer
-This is a powerful Streamlit-based video summarization tool that uses a combination of audio transcription, visual understanding, and AI-powered summarization to generate insightful summaries of educational or informative videos.
+## 🧠 Video Summarizer App (Whisper + BLIP + GPT)
 
-🚀 Features
-🎧 Audio Transcription using OpenAI's Whisper to accurately capture spoken content.
+This is a **Streamlit-based web application** that generates **concise, story-like summaries** of videos by combining **audio transcription** and **visual captioning**. It uses OpenAI's Whisper for audio, Salesforce BLIP for image captioning, and GPT-3.5 for final summarization.
 
-🖼️ Visual Context with BLIP (Bootstrapped Language Image Pretraining) for intelligent image captioning from selected key frames.
+### 🚀 Features
+- 📥 Upload and preview videos directly in the browser.
+- 🖼️ Extracts key frames and generates contextual captions using **BLIP**.
+- 🎧 Transcribes spoken audio using **Whisper ASR**.
+- 🧠 Generates insightful summaries using **GPT-3.5**, with a focus on audio content.
+- ⚡ Powered by **FFmpeg** (auto-downloaded if not available) for efficient video handling.
 
-🧠 Smart Summarization powered by OpenAI GPT (ChatGPT) to generate concise, informative, and human-like summaries.
+### 💡 Use Cases
+- Summarize **educational lectures**, **YouTube Shorts**, or **seminars**.
+- Quickly understand long videos without watching them in full.
+- Capture **notable quotes** and **main themes** from spoken content.
 
-📦 FFmpeg Integration for reliable frame extraction without using MoviePy.
+### 🛠️ Tech Stack
+- **Python**, **Streamlit**
+- [OpenAI Whisper](https://github.com/openai/whisper)
+- [Salesforce BLIP](https://huggingface.co/Salesforce/blip-image-captioning-base)
+- **OpenAI GPT-3.5** for natural language summarization
+- **FFmpeg** via `imageio-ffmpeg` for extracting frames
 
-💻 Streamlit Web App for easy interaction and uploading local videos.
+
+```
+
+The app will automatically download FFmpeg binaries if not already present.
+
+
+
+### ✅ Coming Soon
+- YouTube link input (with automatic download)
+- Speaker identification
+- Multi-language support
+
+---
