@@ -7,3 +7,6 @@ imageio-ffmpeg
 opencv-python
 Pillow
 transformers
+fastapi
+uvicorn
+opencv-python-headless
