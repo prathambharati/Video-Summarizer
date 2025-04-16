@@ -24,13 +24,3 @@ This is a **Streamlit-based web application** that generates **concise, story-li
 
 ```
 
-The app will automatically download FFmpeg binaries if not already present.
-
-
-
-### ✅ Coming Soon
-- YouTube link input (with automatic download)
-- Speaker identification
-- Multi-language support
-
----
