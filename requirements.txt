@@ -4,9 +4,8 @@ torchvision
 openai
 whisper
 imageio-ffmpeg
-opencv-python
+opencv-python-headless
 Pillow
 transformers
 fastapi
 uvicorn
-opencv-python-headless
