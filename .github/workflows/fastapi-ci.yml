@@ -31,7 +31,6 @@ jobs:
         run: huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Step 5: Set up OpenAI API Key
-            # Step 5: Write OpenAI API Key to .env file
       - name: Inject OpenAI API Key into .env
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
@@ -42,8 +41,9 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
           git remote add hf https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/prathambharati/summary
+          git fetch hf main
+          git merge hf/main --allow-unrelated-histories --no-edit
           git push hf main
-
 
       # Step 7: Clean up (optional)
       - name: Clean up temporary files
