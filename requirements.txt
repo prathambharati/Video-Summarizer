@@ -9,3 +9,6 @@ Pillow
 transformers
 fastapi
 uvicorn
+python-dotenv
+faster-whisper
+ffmpeg-python
