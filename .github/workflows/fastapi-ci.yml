@@ -31,15 +31,19 @@ jobs:
         run: huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Step 5: Set up OpenAI API Key
-      - name: Set up OpenAI API Key
-        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+            # Step 5: Write OpenAI API Key to .env file
+      - name: Inject OpenAI API Key into .env
+        run: |
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
       # Step 6: Push to Hugging Face Space
       - name: Push to Hugging Face Space
         run: |
-          huggingface-cli repo create prathambharati/summary --space --type fastapi
-          git remote add hf https://huggingface.co/spaces/prathambharati/summary
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+          git remote add hf https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/prathambharati/summary
           git push hf main
+
 
       # Step 7: Clean up (optional)
       - name: Clean up temporary files
