@@ -50,6 +50,10 @@ jobs:
 
 
       # Step 7: Clean up (optional)
+      # Step: Clean up (optional)
       - name: Clean up temporary files
         run: |
-          rm -rf /tmp/*
+          sudo rm -rf /tmp/*
+          sudo find /tmp -type f -exec chmod 777 {} \;  # Change permissions if needed to avoid the error
+          sudo rm -rf /tmp/*
+
