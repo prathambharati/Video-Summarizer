@@ -42,8 +42,9 @@ jobs:
           git config --global user.name "Your Name"
           git remote add hf https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/prathambharati/summary
           git fetch hf main
-          git merge -s ours hf/main -m "Resolve conflict by keeping local changes"
+          git merge -s ours hf/main --allow-unrelated-histories -m "Merge with Hugging Face Space - keep GitHub version"
           git push hf main
+
 
       # Step 7: Clean up (optional)
       - name: Clean up temporary files
