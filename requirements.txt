@@ -2,7 +2,7 @@ streamlit
 torch
 torchvision
 openai
-whisper
+git+https://github.com/openai/whisper.git
 imageio-ffmpeg
 opencv-python-headless
 Pillow
