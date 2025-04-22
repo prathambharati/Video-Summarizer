@@ -13,6 +13,9 @@ jobs:
       # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Disable shallow clone so full history is available
+
 
       # Step 2: Set up Python
       - name: Set up Python
