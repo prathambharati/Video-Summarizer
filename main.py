@@ -9,16 +9,28 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import whisper
 
-# Set up logging
+# === Detect Environment ===
+def is_huggingface():
+    return os.path.exists("/.dockerenv") and os.environ.get("HF_SPACE_ID") is not None
+
+# Set FFmpeg path and Whisper cache directory based on environment
+if is_huggingface():
+    ffmpeg_cmd = "ffmpeg"
+    os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
+else:
+    ffmpeg_cmd = r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe"
+    os.environ["XDG_CACHE_HOME"] = "C:\\tmp\\.cache"
+
+# === Logging ===
 logging.basicConfig(level=logging.INFO)
 
-# Load environment variables
+# === Load environment variables ===
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY not set in environment.")
 
-# Init clients
+# === Init clients ===
 client = OpenAI(api_key=OPENAI_API_KEY)
 whisper_model = whisper.load_model("base")
 app = FastAPI()
@@ -29,11 +41,9 @@ def save_upload_file_tmp(upload_file: UploadFile) -> str:
         tmp_dir = tempfile.mkdtemp()
         raw_path = os.path.join(tmp_dir, "raw.mp4")
 
-        # Log incoming file info
         logging.info(f"Received file: {upload_file.filename}")
         logging.info(f"Content type: {upload_file.content_type}")
 
-        # Check incoming file size before saving
         upload_file.file.seek(0, os.SEEK_END)
         size = upload_file.file.tell()
         logging.info(f"Incoming file size (pre-save): {size} bytes")
@@ -56,7 +66,7 @@ def save_upload_file_tmp(upload_file: UploadFile) -> str:
 def fix_moov_atom(input_path: str, output_path: str):
     try:
         cmd = [
-            r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe",
+            ffmpeg_cmd,
             "-y",
             "-i", input_path,
             "-c", "copy",
@@ -70,7 +80,7 @@ def fix_moov_atom(input_path: str, output_path: str):
         logging.warning("FFmpeg copy +faststart failed. Trying full re-encode.")
         try:
             cmd_fallback = [
-                r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe",
+                ffmpeg_cmd,
                 "-y",
                 "-i", input_path,
                 "-c:v", "libx264",
@@ -88,10 +98,14 @@ def generate_summary(transcript: str) -> str:
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes video transcripts."},
-                {"role": "user", "content": f"Summarize this transcript:\n{transcript}"}
-            ],
+            messages=[{
+                "role": "system", 
+                "content": "You are a helpful assistant that summarizes video transcripts."
+            },
+            {
+                "role": "user", 
+                "content": f"Summarize this transcript:\n{transcript}"
+            }],
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
