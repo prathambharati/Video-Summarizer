@@ -1,86 +1,122 @@
-# main.py
-import torch
-import whisper
-from transformers import BlipProcessor, BlipForConditionalGeneration
-from PIL import Image
-import cv2
-import numpy as np
-from openai import OpenAI
-from fastapi import FastAPI, File, UploadFile
+import os
+import shutil
 import tempfile
+import subprocess
+import logging
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+from openai import OpenAI
+import whisper
 
-# Initialize FastAPI app
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY not set in environment.")
+
+# Init clients
+client = OpenAI(api_key=OPENAI_API_KEY)
+whisper_model = whisper.load_model("base")
 app = FastAPI()
 
-# Load models once
-device = "cuda" if torch.cuda.is_available() else "cpu"
-blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base").to(device)
-whisper_model = whisper.load_model("base")
-client = OpenAI(api_key="your-open-api-key")#Enter your open api key here
+# === File Saving ===
+def save_upload_file_tmp(upload_file: UploadFile) -> str:
+    try:
+        tmp_dir = tempfile.mkdtemp()
+        raw_path = os.path.join(tmp_dir, "raw.mp4")
 
-# Core functions
-def extract_frames(video_path, num_frames=5):
-    cap = cv2.VideoCapture(video_path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    idxs = np.linspace(0, total - 1, num_frames, dtype=int)
-    frames = []
-    for idx in idxs:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-        ret, frame = cap.read()
-        if ret:
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frames.append(Image.fromarray(img))
-    cap.release()
-    return frames
+        # Log incoming file info
+        logging.info(f"Received file: {upload_file.filename}")
+        logging.info(f"Content type: {upload_file.content_type}")
 
-def generate_captions(frames):
-    captions = []
-    for img in frames:
-        inputs = blip_processor(images=img, return_tensors="pt").to(device)
-        output = blip_model.generate(**inputs)
-        caption = blip_processor.decode(output[0], skip_special_tokens=True)
-        captions.append(caption)
-    return captions
+        # Check incoming file size before saving
+        upload_file.file.seek(0, os.SEEK_END)
+        size = upload_file.file.tell()
+        logging.info(f"Incoming file size (pre-save): {size} bytes")
+        upload_file.file.seek(0)
 
-def transcribe(video_path):
-    return whisper_model.transcribe(video_path)['text']
+        with open(raw_path, "wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
 
-def summarize(audio_text, visual_captions):
-    prompt = f"""
-You are an assistant summarizing educational videos. Focus on extracting key topics and notable quotes.
+        saved_size = os.path.getsize(raw_path)
+        logging.info(f"Saved file at: {raw_path}, size: {saved_size} bytes")
 
-🎧 Audio Transcript:
-{audio_text}
+        if not os.path.exists(raw_path) or saved_size == 0:
+            raise RuntimeError("Saved file is empty")
 
-🖼️ Visual Captions:
-{visual_captions}
+        return raw_path
+    except Exception as e:
+        raise RuntimeError(f"Failed to save upload file: {e}")
 
-Generate a concise summary.
-"""
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
+# === FFmpeg Fix ===
+def fix_moov_atom(input_path: str, output_path: str):
+    try:
+        cmd = [
+            r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe",
+            "-y",
+            "-i", input_path,
+            "-c", "copy",
+            "-movflags", "+faststart",
+            output_path
         ]
-    )
-    return response.choices[0].message.content.strip()
+        logging.info(f"Running FFmpeg command: {' '.join(cmd)}")
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-# API endpoint
+    except subprocess.CalledProcessError as e:
+        logging.warning("FFmpeg copy +faststart failed. Trying full re-encode.")
+        try:
+            cmd_fallback = [
+                r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe",
+                "-y",
+                "-i", input_path,
+                "-c:v", "libx264",
+                "-c:a", "aac",
+                "-movflags", "+faststart",
+                output_path
+            ]
+            subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError as e2:
+            error_msg = e2.stderr.decode("utf-8")
+            raise RuntimeError(f"FFmpeg re-encode error: {error_msg}")
+
+# === GPT Summary ===
+def generate_summary(transcript: str) -> str:
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes video transcripts."},
+                {"role": "user", "content": f"Summarize this transcript:\n{transcript}"}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error during GPT summarization:\n{str(e)}"
+
+# === FastAPI Endpoint ===
 @app.post("/summarize/")
-async def summarize_video(file: UploadFile = File(...), num_frames: int = 5):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        tmp.write(await file.read())
-        video_path = tmp.name
+async def summarize_video(file: UploadFile = File(...)):
+    try:
+        raw_path = save_upload_file_tmp(file)
+        if not os.path.exists(raw_path) or os.path.getsize(raw_path) == 0:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty or invalid")
 
-    frames = extract_frames(video_path, num_frames)
-    captions = generate_captions(frames)
-    transcript = transcribe(video_path)
-    final_summary = summarize(transcript, "\n".join(captions))
+        fixed_path = os.path.join(os.path.dirname(raw_path), "fixed.mp4")
+        fix_moov_atom(raw_path, fixed_path)
 
-    return {
-        "transcript": transcript,
-        "captions": captions,
-        "summary": final_summary
-    }
+        result = whisper_model.transcribe(fixed_path)
+        transcript = result["text"]
+        summary = generate_summary(transcript)
+
+        return JSONResponse(content={"transcript": transcript, "summary": summary})
+
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        logging.error(f"Error in /summarize/: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
