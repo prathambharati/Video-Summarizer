@@ -36,7 +36,7 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
       # Step 6: Push to Hugging Face Space
-            - name: Push to Hugging Face Space
+      - name: Push to Hugging Face Space
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
