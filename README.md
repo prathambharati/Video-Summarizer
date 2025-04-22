@@ -26,16 +26,16 @@ Both tools use **OpenAI Whisper** for transcription and **GPT-3.5** for summariz
   - Raw audio transcript
   - Final GPT-generated summary
 
-### 🛠 How to Run
+🛠 How to Run
 
-### bash
+bash
 streamlit run video.py 
 
-main.py – FastAPI API (Backend)
+### main.py – FastAPI API (Backend)
 
 main.py is a FastAPI-based REST API that provides programmatic access to video summarization. Ideal for integrating into other apps, automations, or deployments like Hugging Face Spaces or Docker.
 
-🔹 Features
+### 🔹 Features
 📤 Accepts video files via POST /summarize/
 
 ✅ Automatically saves and validates uploaded video
