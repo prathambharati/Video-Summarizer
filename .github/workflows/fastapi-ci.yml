@@ -36,13 +36,13 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
       # Step 6: Push to Hugging Face Space
-      - name: Push to Hugging Face Space
+            - name: Push to Hugging Face Space
         run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
           git remote add hf https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/prathambharati/summary
           git fetch hf main
-          git merge hf/main --allow-unrelated-histories --no-edit
+          git merge -s ours hf/main -m "Resolve conflict by keeping local changes"
           git push hf main
 
       # Step 7: Clean up (optional)
