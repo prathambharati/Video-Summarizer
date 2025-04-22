@@ -26,10 +26,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Log in to Hugging Face CLI using stored token
+      # Step 4: Log in to Hugging Face CLI using the stored token
       - name: Login to Hugging Face
-        run: |
-          echo "${{ secrets.HF_TOKEN }}" | huggingface-cli login --token
+        run: huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Step 5: Set up OpenAI API Key
       - name: Set up OpenAI API Key
