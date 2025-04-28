@@ -8,14 +8,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Disable shallow clone so full history is available
-
+          fetch-depth: 0  # Full history for merging
 
       # Step 2: Set up Python
       - name: Set up Python
@@ -29,31 +28,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Log in to Hugging Face CLI using the stored token
-      - name: Login to Hugging Face
-        run: huggingface-cli login --token ${{ secrets.HF_TOKEN }}
+      # Step 4: Set up Hugging Face CLI
+      - name: Install Hugging Face Hub
+        run: pip install huggingface_hub
 
-      # Step 5: Set up OpenAI API Key
-      - name: Inject OpenAI API Key into .env
+      # Step 5: Log in to Hugging Face CLI
+      - name: Login to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: huggingface-cli login --token "$HF_TOKEN"
+
+      # Step 6: Inject OpenAI API Key into .env
+      - name: Create .env file
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
-      # Step 6: Push to Hugging Face Space
+      # Step 7: Push code to Hugging Face Space
       - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config --global user.email "you@example.com"
+          git config --global user.email "your@email.com"
           git config --global user.name "Your Name"
-          git remote add hf https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/prathambharati/summary
-          git fetch hf main
-          git merge -s ours hf/main --allow-unrelated-histories -m "Merge with Hugging Face Space - keep GitHub version"
+          
+          git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/prathambharati/summary || true
+          
+          git fetch hf main || true
+          git merge -X theirs hf/main --allow-unrelated-histories -m "Merge with Hugging Face Space - prefer GitHub version" || true
+          
           git push hf main
 
-
-      # Step 7: Clean up (optional)
-      # Step: Clean up (optional)
+      # Step 8: Clean up (optional)
       - name: Clean up temporary files
         run: |
-          sudo rm -rf /tmp/*
-          sudo find /tmp -type f -exec chmod 777 {} \;  # Change permissions if needed to avoid the error
-          sudo rm -rf /tmp/*
-
+          sudo find /tmp -type f -exec chmod 777 {} \; || true
+          sudo rm -rf /tmp/* || true
