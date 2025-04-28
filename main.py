@@ -28,6 +28,7 @@ logging.basicConfig(level=logging.INFO)
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
+    logging.error("OPENAI_API_KEY is missing in the environment!")
     raise RuntimeError("OPENAI_API_KEY not set in environment.")
 
 # === Init clients ===
@@ -74,24 +75,11 @@ def fix_moov_atom(input_path: str, output_path: str):
             output_path
         ]
         logging.info(f"Running FFmpeg command: {' '.join(cmd)}")
-        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        logging.info(result.stdout.decode("utf-8"))
     except subprocess.CalledProcessError as e:
-        logging.warning("FFmpeg copy +faststart failed. Trying full re-encode.")
-        try:
-            cmd_fallback = [
-                ffmpeg_cmd,
-                "-y",
-                "-i", input_path,
-                "-c:v", "libx264",
-                "-c:a", "aac",
-                "-movflags", "+faststart",
-                output_path
-            ]
-            subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        except subprocess.CalledProcessError as e2:
-            error_msg = e2.stderr.decode("utf-8")
-            raise RuntimeError(f"FFmpeg re-encode error: {error_msg}")
+        logging.error(f"FFmpeg error: {e.stderr.decode('utf-8')}")
+        raise RuntimeError(f"FFmpeg failed: {e.stderr.decode('utf-8')}")
 
 # === GPT Summary ===
 def generate_summary(transcript: str) -> str:
@@ -105,8 +93,7 @@ def generate_summary(transcript: str) -> str:
             {
                 "role": "user", 
                 "content": f"Summarize this transcript:\n{transcript}"
-            }],
-            temperature=0.7
+            }], temperature=0.7
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -123,8 +110,11 @@ async def summarize_video(file: UploadFile = File(...)):
         fixed_path = os.path.join(os.path.dirname(raw_path), "fixed.mp4")
         fix_moov_atom(raw_path, fixed_path)
 
+        logging.info("Transcription started.")
         result = whisper_model.transcribe(fixed_path)
         transcript = result["text"]
+        logging.info("Transcription completed.")
+
         summary = generate_summary(transcript)
 
         return JSONResponse(content={"transcript": transcript, "summary": summary})
