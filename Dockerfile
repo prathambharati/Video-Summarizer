@@ -20,7 +20,10 @@ COPY . .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Expose the Hugging Face expected port
+# Hugging Face expects apps to run on port 7860
+ENV PORT 7860
+
+# Expose the app port
 EXPOSE 7860
 
 # Run the API with Uvicorn on port 7860
