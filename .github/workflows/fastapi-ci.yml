@@ -37,17 +37,20 @@ jobs:
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
+      # Step 7: Push code to Hugging Face Space
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git config --global user.email "your@email.com"
           git config --global user.name "Your Name"
-          
           git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/prathambharati/summary || true
-          
-          git pull --rebase hf main || true
+          git fetch hf main || true
+
+          git merge -X theirs hf/main --allow-unrelated-histories -m "Merge with Hugging Face Space - prefer GitHub version" || true
+
+          git add README.md || true  # Add the conflicted file after resolving
+
+          git commit -m "Resolved conflicts and merged Hugging Face Space changes" || true
           git push hf main
 
-      - name: Clean up Hugging Face CLI login
-        run: rm -rf ~/.huggingface
