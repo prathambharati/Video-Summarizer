@@ -1,10 +1,10 @@
-# Use the official Python image as a base
+# Use the official Python image
 FROM python:3.10-slim
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies required by the app
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libglib2.0-0 \
@@ -13,18 +13,15 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only the requirements file first to optimize caching during image builds
-COPY requirements.txt .
+# Copy app files
+COPY . .
 
-# Upgrade pip and install Python dependencies
+# Install Python dependencies
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Copy the rest of the application files into the container
-COPY . .
+# Expose the Hugging Face expected port
+EXPOSE 7860
 
-# Expose the app's port (default FastAPI port is 8000)
-EXPOSE 8000
-
-# Command to run the FastAPI app using Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the API with Uvicorn on port 7860
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
