@@ -1,0 +1,2 @@
+sdk: fastapi
+app_file: main.py  # Make sure this points to the correct FastAPI file
