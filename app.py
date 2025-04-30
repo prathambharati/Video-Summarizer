@@ -16,10 +16,10 @@ def is_huggingface():
 # Set FFmpeg path and Whisper cache directory based on environment
 if is_huggingface():
     ffmpeg_cmd = "ffmpeg"
-    os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
+    os.environ["XDG_CACHE_HOME"] = "/app/cache"
 else:
     ffmpeg_cmd = r"C:\ffmpeg-2025-03-31-git-35c091f4b7-full_build\bin\ffmpeg.exe"
-    os.environ["XDG_CACHE_HOME"] = "C:\\tmp\\.cache"
+    os.environ["XDG_CACHE_HOME"] = "C:\\Users\\prath\\AppData\\Local\\Temp\\.cache"
 
 # === Logging ===
 logging.basicConfig(level=logging.INFO)
@@ -86,14 +86,11 @@ def generate_summary(transcript: str) -> str:
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{
-                "role": "system", 
-                "content": "You are a helpful assistant that summarizes video transcripts."
-            },
-            {
-                "role": "user", 
-                "content": f"Summarize this transcript:\n{transcript}"
-            }], temperature=0.7
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes video transcripts."},
+                {"role": "user", "content": f"Summarize this transcript:\n{transcript}"}
+            ],
+            temperature=0.7
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
