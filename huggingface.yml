@@ -1,2 +1,2 @@
 sdk: fastapi
-app_file: main.py
+app_file: app.py
