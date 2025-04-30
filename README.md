@@ -1,3 +1,17 @@
+---
+title: Summary
+emoji: 📚
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: 1.44.1
+app_file: app.py
+pinned: false
+short_description: video summarizer
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
 # 🎬 AI Video Summarizer
 
 This project contains two key components for summarizing educational videos using AI:
