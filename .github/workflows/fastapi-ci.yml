@@ -42,8 +42,8 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config --global user.email "your@email.com"
-          git config --global user.name "Your Name"
+          git config --global user.email "pratham.bharati03@gmail.com"
+          git config --global user.name "prathambharati"
           git remote add hf https://user:$HF_TOKEN@huggingface.co/spaces/prathambharati/summary || true
           git fetch hf main || true
 
