@@ -11,14 +11,21 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Create a cache directory for Whisper
+RUN mkdir -p /app/cache && chmod -R 777 /app/cache
+
+# Set the cache directory environment variable
+ENV WHISPER_CACHE_DIR=/app/cache
 
 # Copy app files
 COPY . .
 
 # Install Python dependencies
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Hugging Face expects apps to run on port 7860
 ENV PORT 7860
